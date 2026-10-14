@@ -4,12 +4,12 @@ import sys
 def detect(path: str) -> list[dict]:
     """
     Parses a Python file using AST and returns a list of detected problems
-    matching Person C's exact schema.
+    matching the team's agreed schema.
     """
     with open(path, "r", encoding="utf-8") as f:
         source = f.read()
 
-    # Let SyntaxError propagate as requested by Person C
+    # Let SyntaxError propagate as requested
     tree = ast.parse(source)
     issues = []
 
@@ -83,9 +83,9 @@ def detect(path: str) -> list[dict]:
                     "corrected_code": ""
                 })
 
-            # Function too long (>30 lines)
+            # Function too long (>30 lines) - includes +1 to count start line accurately
             if hasattr(node, "end_lineno") and node.end_lineno:
-                length = node.end_lineno - node.lineno
+                length = node.end_lineno - node.lineno + 1
                 if length > 30:
                     issues.append({
                         "file": path,
