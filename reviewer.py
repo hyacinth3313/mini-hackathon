@@ -101,6 +101,11 @@ def write_report(path, results):
 
 
 def main():
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
     ap = argparse.ArgumentParser(description="AI-assisted Python code reviewer")
     ap.add_argument("target", help="a .py file or a folder")
     ap.add_argument("--out", help="save a markdown report, e.g. report.md")
@@ -134,7 +139,7 @@ def main():
             continue
 
         if findings and not args.no_llm:
-            with ThreadPoolExecutor(max_workers=4) as ex:
+            with ThreadPoolExecutor(max_workers=2) as ex:
                 findings = list(ex.map(safe_explain, findings))
         results[str(file)] = findings
         print_file(str(file), findings)
