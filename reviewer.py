@@ -35,6 +35,15 @@ def score(findings):
     return max(0, 100 - sum(PENALTY.get(str(f.get("severity", "low")).lower(), 2) for f in findings))
 
 
+def format_corrected_code(code):
+    if not code:
+        return ""
+    s = str(code)
+    if "\n" not in s and "\\n" in s:
+        s = s.replace("\\n", "\n").replace('\\"', '"').replace("\\t", "\t")
+    return s
+
+
 def print_file(file, findings):
     console.print(Panel(f"[bold]{escape(str(file))}[/]  ({len(findings)} problems)", style="blue"))
     if not findings:
@@ -54,7 +63,8 @@ def print_file(file, findings):
         console.print(f"  [bold]Why:[/] {escape(str(f.get('why') or '(no explanation available)'))}")
         console.print(f"  [bold]Fix:[/] {escape(str(f.get('fix') or '(no suggestion available)'))}")
         if f.get("corrected_code"):
-            console.print(Syntax(str(f["corrected_code"]), "python", theme="monokai", padding=1))
+            code = format_corrected_code(f["corrected_code"])
+            console.print(Syntax(code, "python", theme="monokai", padding=1))
         console.print()
 
 
@@ -93,7 +103,8 @@ def write_report(path, results):
                 out += ["```python", str(f.get("snippet")), "```"]
             out += [f"- **Why:** {f.get('why') or '-'}", f"- **Fix:** {f.get('fix') or '-'}"]
             if f.get("corrected_code"):
-                out += ["```python", str(f["corrected_code"]), "```"]
+                code = format_corrected_code(f["corrected_code"])
+                out += ["```python", code, "```"]
             out.append("")
     out_path = Path(path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
