@@ -24,13 +24,13 @@ def explain(finding: dict) -> dict:
     - Name: {finding.get('name')}
     - Line: {finding.get('line')}
     - Snippet:
-    {finding.get('code_snippet')}
+    {code_snippet}
 
     Provide your response in strict JSON format with exactly these four keys:
     - "why": Exactly one plain-language sentence explaining the problem.
     - "fix": Exactly one plain-language sentence suggesting a fix.
     - "severity": Must be strictly one of "high", "medium", or "low".
-    - "corrected_code": The refactored code snippet resolving the issue.
+    - "corrected_code": corrected_code must be valid Python that keeps the original logic; for a missing docstring only add the docstring, don't rewrite the body. Use real newlines.
     """
 
     for attempt in range(2):
@@ -42,6 +42,7 @@ def explain(finding: dict) -> dict:
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0,
+                max_tokens=1500,
                 response_format={"type": "json_object"},
                 timeout=15
             )
