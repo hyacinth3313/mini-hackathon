@@ -48,6 +48,9 @@ def print_file(file, findings):
         name = f.get("name", "unknown")
         console.print(f"[bold]Line {line}[/] | [{c}]{escape(str(ftype))}[/] | "
                       f"{escape(str(name))}  [{c}]({sev})[/]")
+        if f.get("snippet"):
+            snip_lines = str(f.get("snippet")).splitlines()[:8]
+            console.print(Syntax("\n".join(snip_lines), "python", theme="monokai", padding=1), style="dim")
         console.print(f"  [bold]Why:[/] {escape(str(f.get('why') or '(no explanation available)'))}")
         console.print(f"  [bold]Fix:[/] {escape(str(f.get('fix') or '(no suggestion available)'))}")
         if f.get("corrected_code"):
@@ -55,19 +58,27 @@ def print_file(file, findings):
         console.print()
 
 
-def print_summary(all_findings):
+def print_summary(results):
+    if isinstance(results, dict):
+        all_findings = [f for fs in results.values() for f in fs]
+        overall_score = round(sum(score(fs) for fs in results.values()) / len(results)) if results else 100
+    else:
+        all_findings = results
+        overall_score = score(all_findings)
+
     t = Table(title="Summary")
     t.add_column("Severity"); t.add_column("Count", justify="right")
     for sev in ("high", "medium", "low"):
         n = sum(1 for f in all_findings if str(f.get("severity", "low")).lower() == sev)
         t.add_row(f"[{COLOR[sev]}]{sev}[/]", str(n))
     console.print(t)
-    console.print(f"[bold]Quality score: {score(all_findings)}/100[/]")
+    console.print(f"[bold]Quality score: {overall_score}/100[/]")
 
 
 def write_report(path, results):
     allf = [f for fs in results.values() for f in fs]
-    out = ["# Code Review Report", f"**Score: {score(allf)}/100**  |  Problems: {len(allf)}", ""]
+    overall_score = round(sum(score(fs) for fs in results.values()) / len(results)) if results else 100
+    out = ["# Code Review Report", f"**Score: {overall_score}/100**  |  Problems: {len(allf)}", ""]
     for file, fs in results.items():
         out.append(f"## {file}")
         if not fs:
@@ -77,8 +88,10 @@ def write_report(path, results):
             ftype = f.get("type", "issue")
             name = f.get("name", "unknown")
             sev = str(f.get("severity", "low")).lower()
-            out += [f"### Line {line} | {ftype} | {name} ({sev})",
-                    f"- **Why:** {f.get('why') or '-'}", f"- **Fix:** {f.get('fix') or '-'}"]
+            out.append(f"### Line {line} | {ftype} | {name} ({sev})")
+            if f.get("snippet"):
+                out += ["```python", str(f.get("snippet")), "```"]
+            out += [f"- **Why:** {f.get('why') or '-'}", f"- **Fix:** {f.get('fix') or '-'}"]
             if f.get("corrected_code"):
                 out += ["```python", str(f["corrected_code"]), "```"]
             out.append("")
@@ -130,7 +143,7 @@ def main():
         console.print("[yellow]No files could be analyzed[/]")
         sys.exit(1)
 
-    print_summary([f for fs in results.values() for f in fs])
+    print_summary(results)
     if args.out:
         write_report(args.out, results)
         console.print(f"[green]Report saved to {escape(args.out)}[/]")
